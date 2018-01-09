@@ -39,7 +39,8 @@ public class Poster {
 	public String sourceTable;
 	public String[] sourceFields;
 	
-	private String settingsKeyString = "AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCC";
+	//private String settingsKeyString = "AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCC";
+	private String settingsKeyString = "ABCDEF1010101010ABCDEF1010101010ABCDEF1010101010";
 	
 	/**
 	 * Constructor - All parameters defined
