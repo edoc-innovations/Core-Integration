@@ -39,13 +39,13 @@ public class Poster {
 	public String sourceTable;
 	public String[] sourceFields;
 	
-	private String settingsKeyString = "AAAAAAAAAABBBBBBBBBBCCCCCCCCCC";
+	private String settingsKeyString = "AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCC";
 	
 	/**
 	 * Constructor - All parameters defined
 	 *
 	 * @param String cid - Control ID  
-	 * @param String ripURL - RIP Isapi URL
+	 * @param String ripURL - RIP ISAPI URL
 	 * @param String edsURL - eDOCSignature URL
 	 * @param String eKey - Encryption Key
 	 * @param String sTable - Source Table Name
