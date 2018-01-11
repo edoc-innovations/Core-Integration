@@ -4,15 +4,9 @@ import java.util.Arrays;
 
 public class PosterMain {
 
-	public static void main(String[] args) throws Throwable {
-		//Poster newPoster = new Poster("Reed");
-		//String user = "tkiel";
-		
+	public static void main(String[] args) throws Throwable {		
 		Poster newPoster = new Poster("CUPROD");
 		String user = "test@cuprod";
-		
-		//Poster newPoster = new Poster("Reed","C:\\Users\\tkiel\\Documents\\edoc.properties");
-		//String user = "TKIEL";
 		
 		System.out.println("POSTER created with the following parameters:");
 		System.out.println("ControlID: "+newPoster.controlID);
@@ -22,70 +16,57 @@ public class PosterMain {
 		System.out.println("sourceTable: "+newPoster.sourceTable);
 		System.out.println("sourceFields: "+Arrays.toString(newPoster.sourceFields));
 		
-		String retJSON;
-		
-		//HANDOFF
-		/*
-		retJSON = newPoster.doHandoff(user);
-		System.out.println(retJSON);
-		*/
-		
-		//CUP-12
-		/*
 		String[] tableIDsList = new String[]{"Images"};
-		String[][] criteriaList = new String[1][];
+		String[][] criteriaList = new String[2][];
 		String[] fieldsList = new String[]{};		
 		criteriaList[0] = new String[]{"Last_Name","Does"};
+		criteriaList[1] = new String[]{"First_Name","John"};
 		
-		retJSON = newPoster.getForms(user, tableIDsList, criteriaList, fieldsList);
-		System.out.println(retJSON);
-		*/
-		
-		//CUP-15
-		/*
 		String pdfFileName2 = "C:\\temp\\MEMBERSHIP APPLICATION-eff 3-24-15.pdf";
 		String pdfFileName = "C:\\temp\\Debt Protection Security Contract.pdf";
 		String pdfName = "MEMBERSHIP APPLICATION CU Prodigy";
 		//String pdfName = "Debt Protection 12-20";
 		String[][] dataMap = new String[0][];
 		
-		retJSON = newPoster.importTemplate(user, pdfFileName, pdfName, dataMap);
-		newPoster.openTemplateInBrowser(retJSON);
-		*/
-		
-		//CUP-16
-		/*
 		String pckName = "New Package";		
-		String[] templateList = new String[]{"Sample Template 1","Sample Template 2"};		
-		
-		String[][] templateData1 = new String[2][];
-		templateData1[0] = new String[]{"FirstName" , "John"};
-		templateData1[1] = new String[]{"LastName" , "Smith"};
-		
-		String[][] templateData2 = new String[3][];
-		templateData2[0] = new String[]{"Firstname" , "Johnny"};
+		String[] templateList = new String[]{"Test Template 1","Test Template 2"};		
+		String[][] templateData1 = new String[1][];
+		templateData1[0] = new String[]{"Name" , "John Smith"};
+		String[][] templateData2 = new String[2][];
+		templateData2[0] = new String[]{"FirstName" , "Johnny"};
 		templateData2[1] = new String[]{"LastName" , "Appleseed"};
-		templateData2[2] = new String[]{"Email" , "sample@email.com"};
-		
 		String[][][] templateData = new String[2][][];
 		templateData[0] = templateData1;
 		templateData[1] = templateData2;
 		
-		retJSON = newPoster.createPackageFromTemplates(user, pckName, templateList, templateData);
-		newPoster.openPackageInBrowser(retJSON);
-		*/
+		String[][] updateData = new String[2][];
+		updateData[0] = new String[]{"Form","Form1"};
+		updateData[1] = new String[]{"Amount","100"};
 		
-		//CUP-17
-		/*
-		System.out.println(newPoster.getForm(user, "E15724CBA79548A39BE3F46EBEFBD9B0", "", "C:\\Work\\Java\\eDOC\\temp\\"));
-		*/
+		//HANDOFF
+		System.out.println(newPoster.doHandoff(user));
 		
-		//CUP-18
-		/*
-		System.out.println(newPoster.getSourceTableForms(user));
-		System.out.println(newPoster.getSourceForm(user, "448E46F1400B4D0BBF322D90C9AA37C3"));	
-		*/
+		//FORM SEARCH		
+		//System.out.println(newPoster.getForms(user, tableIDsList, criteriaList, fieldsList));
 		
+		//DOCUMENT RETRIEVAL		
+		//System.out.println(newPoster.getForm(user, "", "", "C:\\Work\\Java\\eDOC\\temp\\"));
+		
+		//CREATE TEMPLATE
+		//newPoster.openTemplateInBrowser(newPoster.importTemplate(user, pdfFileName, pdfName, dataMap));
+		
+		//CREATE PACKAGE FROM TEMPLATES		
+		//newPoster.openPackageInBrowser(newPoster.createPackageFromTemplates(user, pckName, templateList, templateData));
+		
+		//GET AP FORMS IN SOURCE TABLE	
+		//System.out.println(newPoster.getAPTableForms(user));
+		
+		//GET AP FORM
+		//System.out.println(newPoster.getAPForm(user, ""));
+		
+		//UPDATE AP FORM
+		//System.out.println(newPoster.updateAPForm(user, "", updateData));
+
 	}
 
 }

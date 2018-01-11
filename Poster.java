@@ -10,8 +10,6 @@ import java.text.SimpleDateFormat;
 import java.util.Properties;
 import java.util.TimeZone;
 import java.io.IOException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
 import java.net.URL;
 import java.util.Date;
 
@@ -39,7 +37,7 @@ public class Poster {
 	public String sourceTable;
 	public String[] sourceFields;
 	
-	private String settingsKeyString = "AAAAAAAAAAAAAAAABBBBBBBBBBBBBBBBCCCCCCCCCCCCCCCC";
+	private String settingsKeyString = "ABCDEF1010101010ABCDEF1010101010ABCDEF1010101010";
 	
 	/**
 	 * Constructor - All parameters defined
@@ -55,7 +53,7 @@ public class Poster {
 	public Poster (String cid, String ripURL, String edsURL, String eKey, String sTable, String[] sFields) {
 		controlID = cid;
 		isapiURL = ripURL;
-		eDOCSigURL = edsURL;
+		eDOCSigURL = edsURL.trim();
 		encryptionKey = eKey;
 		sourceTable = sTable;
 		sourceFields = sFields;
@@ -67,7 +65,7 @@ public class Poster {
 	 *
 	 * @param String cid - Control ID  
 	 * @param String Filepath for properties file
-	 * @throws Throwable 
+	 * @throws Throwable If the given properties file does not exist
 	 * 
 	 */
 	public Poster(String cid, String propFilePath) throws Throwable {
@@ -86,7 +84,7 @@ public class Poster {
 	 * Throws error if file does not exist 
 	 *
 	 * @param String cid - Control ID  
-	 * @throws Throwable 
+	 * @throws Throwable if an edoc.properties file is not found in the current directory
 	 * 
 	 */
 	public Poster(String cid) throws Throwable {
@@ -103,11 +101,12 @@ public class Poster {
 	/**
 	 * Call to perform a simple hand off to the edocsignature system. 
 	 * Use this to check to make sure connection is up and working.
-	 * Defined in the eDOCSignature API in the /SESSIONS section and Appendix A
-	 *
-	 * @param String user - eDOCSignature user	 *   
+	 * API Definition in the eDOCSignature API in the /SESSIONS section and Appendix A
 	 * 
-	 */	
+	 * @param user - eDOC User
+	 * @return JSON response string
+	 * @throws Exception
+	 */
 	public String doHandoff(String user) throws Exception {
 		String responseString = null;
 		System.out.println("Attempting handoff...");
@@ -120,8 +119,7 @@ public class Poster {
         		throw new java.lang.Error("Error: user cannot be empty");
         	}
         	String handoff = BuildEncryptedHandoffString(user);
-        	String host = Inet4Address.getLocalHost().getHostAddress();
-        	//String host = getExternalIP();
+        	String host = getExternalIP();
         	//build the hand off string
         	String bodyContent = "{\"action\":\"handoff\",\"controlid\":\""+controlID+"\",\"host\":\""+host+"\",\"handoff\":\""+handoff+"\"}";
         	System.out.println(bodyContent);
@@ -147,19 +145,20 @@ public class Poster {
 	
 	/**
 	 * Call to complete an import template call to the edocsignature system.
-	 * Defined in the /TEMPLATES section with the IMPORTTEMPLATES command.
-	 * 
-	 * @param String user - eDOCSignature user
-	 * @param String pdfFileName - File location of pdf file to upload
-	 * @param String pdfName - Name of template
-	 * @param String dataMap - Map of data from CU*Prodigy system. Should be formatted as an array of string arrays of ["CU*P field","eDOC field"]	    
-	 * 
-	 */	
+	 * API Definition in the /TEMPLATES section with the IMPORTTEMPLATES command. 
+	 *
+	 * @param user - eDOC User
+	 * @param pdfFilePath - File location of PDF File to use to create template
+	 * @param pdfName - Name of template
+	 * @param dataMap - Mapping of data to the eDOC system
+	 * @return JSON response string
+	 * @throws Exception
+	 */
 	public String importTemplate(String user, String pdfFilePath, String pdfName, String[][] dataMap) throws Exception {
 		System.out.println("Attempting template import...");
 		String responseString = null;
         HttpClient httpclient = HttpClientBuilder.create().build();
-        //Set up a SESSIONS request
+        //Set up a TEMPLATES request
         HttpPost request = new HttpPost(isapiURL+"/TEMPLATES/");
         JSONObject result = new JSONObject();
         try {
@@ -168,11 +167,12 @@ public class Poster {
         	}
         	//initialize file from file path
         	File file = new File(pdfFilePath);
-        	//build handoff string, fetch local machine ip, convert map data
+        	
+        	//format information required to build JSON request string
         	String handoff = BuildEncryptedHandoffString(user);
-        	String host = Inet4Address.getLocalHost().getHostAddress();
-        	//String host = getExternalIP();
+        	String host = getExternalIP();
         	String mapData = buildMapData(dataMap);
+        	
         	//build the JSON body
         	String bodyContent = "{\"action\":\"IMPORT\","
         						+ "\"controlid\":\""+controlID+"\","
@@ -212,29 +212,30 @@ public class Poster {
 	
 	/**
 	 * Call to create a package from a set of templates and template data.
-	 * Defined in the /TEMPLATES section with the CREATEFROMTEMPLATES command.
+	 * API Definition in the /TEMPLATES section with the CREATEFROMTEMPLATES command.
 	 * 
-	 * @param String user - eDOCSignature user
-	 * @param String packageName - Name of package to create
-	 * @param String[] templateList - Array of templates to build into a package
-	 * @param String[][][] templateData - Mapping of data. Built as an array of pairs organized by template.	    
-	 * 
+	 * @param user - eDOCSignature user
+	 * @param packageName - Name of package to create
+	 * @param templateList - Array of templates to build into a package
+	 * @param templateData - Mapping of data. Built as an array of pairs organized by template.	    
+	 * @return JSON response string 
 	 */	
 	public String createPackageFromTemplates(String user, String packageName, String[] templateList, String[][][] templateData) throws Exception {
         String responseString= "";
 		System.out.println("Attempting creating package from templates...");
         HttpClient httpclient = HttpClientBuilder.create().build();
-        //Set up a SESSIONS request
+        //Set up a PACKAGES request
         HttpPost request = new HttpPost(isapiURL+"/PACKAGES/");
         JSONObject result = new JSONObject();
         try {
         	if (user.isEmpty()) {
         		throw new java.lang.Error("Error: user cannot be empty");
         	}
+        	//format information required to build JSON request string
         	String handoff = BuildEncryptedHandoffString(user);
-        	//String host = getExternalIP();
-        	String host = InetAddress.getLocalHost().getHostAddress().toString();
+        	String host = getExternalIP();
         	String templatesString = buildTemplatesString(templateList, templateData);
+        	
         	//build the hand off string
         	String bodyContent = "{\"action\":\"CREATEFROMTEMPLATES\","
         						+ "\"controlid\":\""+controlID+"\","			
@@ -249,8 +250,7 @@ public class Poster {
 	        request.setEntity(se);
 	        HttpResponse response = httpclient.execute(request);
 	        HttpEntity rentity = response.getEntity();
-        	responseString = EntityUtils.toString(rentity);
-        	System.out.println();    
+        	responseString = EntityUtils.toString(rentity);   
         	} catch (ClientProtocolException e) {
         		result.put("status", "500");
         		result.put("bodyContent", "");
@@ -267,13 +267,13 @@ public class Poster {
 	
 	/**
 	 * Call to get and download a form in the system by tableID and docID
-	 * Defined in the /DOCUMENTS/FORMS section with the GETFORM command.
+	 * API Definition in the /DOCUMENTS/FORMS section with the GETFORM command.
 	 * 
-	 * @param String user - eDOCSignature user.
-	 * @param String docID - ID of doc to retrieve.
-	 * @param String tableID - Table to look to. If blank will look into all tables until docID is found.
-	 * @param String filePath - Path to download file. Can be either a directory or file path. Will use docID as file name if a directory is given.	    
-	 * 
+	 * @param user - eDOCSignature user.
+	 * @param docID - ID of doc to retrieve.
+	 * @param tableID - Table to look to. If blank will look into all tables until docID is found.
+	 * @param filePath - Path to download file. Can be either a directory or file path. Will use docID as file name if a directory is given.	    
+	 * @return JSON response string  
 	 */	
 	public String getForm(String user, String docID, String tableID, String filePath) throws Exception {
 		File outFile = new File(filePath);
@@ -286,9 +286,9 @@ public class Poster {
         	if (user.isEmpty()) {
         		throw new java.lang.Error("Error: user cannot be empty");
         	}
+        	//format information required to build JSON request string
         	String handoff = BuildEncryptedHandoffString(user);
-        	String host = Inet4Address.getLocalHost().getHostAddress();
-        	//String host = getExternalIP();
+        	String host = getExternalIP();
 
         	//build the hand off string
         	String bodyContent = "{\"action\":\"GETFORM\","
@@ -304,7 +304,6 @@ public class Poster {
 	        request.setEntity(se);
 	        HttpResponse response = httpclient.execute(request);
 	        HttpEntity rentity = response.getEntity();
-	        
 	        BufferedHttpEntity buf = new BufferedHttpEntity(rentity);
 	        //ensure file path is valid - if not, append the filename and extension        	
 	        if (outFile.exists() == true){
@@ -339,13 +338,13 @@ public class Poster {
 	
 	/**
 	 * Call to get a list of forms in the system that satisfy a given criteria
-	 * Defined in the /DOCUMENTS/FORMS section with the GETFORMS command.
+	 * API Definition in the /DOCUMENTS/FORMS section with the GETFORMS command.
 	 * 
-	 * @param String user - eDOCSignature user.
-	 * @param String[] tableIDsList - List of tables to look into. If blank, will search all tables.
-	 * @param String[][] criteriaList - List of criteria. Formatted as a set of arrays of pairs in the format ["Form","FormType"] or ["Created_ON","<1970"].
-	 * @param String[] fieldsList - List of fields to return. If left blank will return the system minimum fields. 	    
-	 * 
+	 * @param user - eDOC User
+	 * @param tableIDsList - List of tables to look into. If blank, will search all tables.
+	 * @param criteriaList - List of criteria. Formatted as a set of arrays of pairs in the format ["Form","FormType"] or ["Created_ON","<1970"].
+	 * @param fieldsList - List of fields to return. If left blank will return the system minimum fields. 	    
+	 * @return JSON response string  
 	 */
 	public String getForms(String user, String[] tableIDsList, String[][] criteriaList, String[] fieldsList) throws Exception {
 		System.out.println("Getting the form list...");
@@ -358,17 +357,19 @@ public class Poster {
         	if (user.isEmpty()) {
         		throw new java.lang.Error("Error: user cannot be empty");
         	}
-        	//build the handoff string
+        	
+        	//format information required to build JSON request string
         	String handoff = BuildEncryptedHandoffString(user);
-        	String host = Inet4Address.getLocalHost().getHostAddress();
-        	//String host = getExternalIP();
+        	String host = getExternalIP();
         	String tableIDs = buildListString(tableIDsList);
         	String criteria = buildNameValueListString(criteriaList);
         	String fields = buildListString(fieldsList);
-        	// table ids cannot be empty
+        	
+        	//table ids cannot be empty
         	if (tableIDs.isEmpty()) {
         		throw new java.lang.Error("Error: table ids list cannot be empty"); 	
         	}
+        	
         	//build the JSON body
         	String bodyContent = "{\"action\":\"GETFORMS\","
         						+ "\"controlid\":\""+controlID+"\","
@@ -417,28 +418,86 @@ public class Poster {
 	}
 	
 	/**
-	 * Call to get a list of forms in the source table as defined during the creation of the poster object.
+	 * Call to update a form in the eDOC system with the given data.
+	 * API Definition in the /DOCUMENTS/FORMS section with the UPDATEFORMFIELDS command
+	 * 
+	 * @param user - eDOC User
+	 * @param table - Table to 
+	 * @param docID - Document to update
+	 * @param updateFields - Array of fields to update with new data
+	 * @return JSON response string 
+	 * @throws Exception
+	 */
+	public String updateForm(String user, String table, String docID, String[][] updateFields) throws Exception{
+		System.out.println("Updating the form...");
+		String responseString = "";
+        HttpClient httpclient = HttpClientBuilder.create().build();
+        //Set up a /DOCUMENTS/FORMS/ request
+        HttpPost request = new HttpPost(isapiURL+"/DOCUMENTS/FORMS/");
+        JSONObject result = new JSONObject();
+        try {
+        	if (user.isEmpty()) {
+        		throw new java.lang.Error("Error: user cannot be empty");
+        	}
+        	
+        	//format information required to build JSON request string
+        	String handoff = BuildEncryptedHandoffString(user);
+        	String host = getExternalIP();
+        	String fields = buildNameValueListString(updateFields);
+        	
+        	//build the JSON body
+        	String bodyContent = "{\"action\":\"UPDATEFORMFIELDS\","
+					+ "\"controlid\":\""+controlID+"\","			
+					+ "\"handoff\":\""+handoff+"\","
+					+ "\"host\":\""+host+"\","
+					+ "\"docid\":\""+docID+"\","
+					+ "\"fields\":["+fields+"]}";
+        	System.out.println(bodyContent);			
+        	
+        	StringEntity se = new StringEntity(bodyContent);
+	        request.addHeader("content-type", "application/json");
+	        request.setEntity(se);
+	        HttpResponse response = httpclient.execute(request);
+	        HttpEntity rentity = response.getEntity();
+        	responseString = EntityUtils.toString(rentity);
+        	
+        	} catch (ClientProtocolException e) {
+        		result.put("status", "500");
+        		result.put("bodyContent", "");
+        		e.printStackTrace();
+        	} catch (IOException e) {
+        		result.put("status", "500");
+        		result.put("bodyContent", "");
+        		e.printStackTrace();
+        	} finally {
+        		request.releaseConnection();
+        	}
+        return responseString;
+	}		
+	
+	/**
+	 * Call to get a list of forms in the AP source table as defined during the creation of the poster object.
 	 * Use this definition if the source table is defined in the properties file. 
 	 * 
-	 * @param String user - eDOCSignature user.	    
+	 * @param user - eDOC User - eDOCSignature user.	    
 	 * 
 	 */
-	public String getSourceTableForms(String user)throws Exception{
+	public String getAPTableForms(String user)throws Exception{
 		if (sourceTable.isEmpty()){
 			throw new java.lang.Error("No source table found"); 
 		}
-		return getSourceTableForms(user, sourceTable);		
+		return getAPTableForms(user, sourceTable);		
 	}
 	
 	/**
-	 * Call to get a list of forms in the source table as defined during the creation of the poster object.
+	 * Call to get a list of forms in the AP source table as defined during the creation of the poster object.
 	 * Use this definition if source table is undefined in the properties file.
 	 * 
-	 * @param String user - eDOCSignature user.	
-	 * @param String table - Source table to search. 	    
+	 * @param user - eDOC User - eDOCSignature user.	
+	 * @param table - Source table to search. 	    
 	 * 
 	 */
-	public String getSourceTableForms(String user, String table) throws Exception{
+	public String getAPTableForms(String user, String table) throws Exception{
 		String[] tableList = new String[]{table};
 		String[][] criteriaList = new String[1][];
 		criteriaList[0] = new String[]{"Imported","<1970"};
@@ -450,44 +509,72 @@ public class Poster {
 	 * Call to get a specified form from the source table.
 	 * Use this definition if the source table is defined in the properties file.
 	 * 
-	 * @param String user - eDOCSignature user.	
-	 * @param String docID - Document to retrieve. 	    
+	 * @param user - eDOC User - eDOCSignature user.	
+	 * @param docID - Document to retrieve. 	    
 	 * 
 	 */
-	public String getSourceForm(String user, String docID) throws Exception{
+	public String getAPForm(String user, String docID) throws Exception{
 		if (sourceTable.isEmpty()){
 			throw new java.lang.Error("No source table found"); 
 		}
-		return getSourceForm(user, sourceTable, docID, sourceFields);
+		return getAPForm(user, sourceTable, docID, sourceFields);
 	}
 	
 	/**
-	 * Call to get a specified form from the source table.
+	 * Call to get a specified form from the AP source table.
 	 * Use this definition if the source table is undefined in the properties file.
 	 * 
-	 * @param String user - eDOCSignature user.	
-	 * @param String table - Source table to search. 	    
-	 * @param String docID - Document to retrieve. 
+	 * @param user - eDOC User - eDOCSignature user.	
+	 * @param table - Source table to search. 	    
+	 * @param docID - Document to retrieve. 
 	 * 
 	 */
-	public String getSourceForm(String user, String table, String docID) throws Exception{
+	public String getAPForm(String user, String table, String docID) throws Exception{
 		if (sourceTable.isEmpty() && table.isEmpty()){
 			throw new java.lang.Error("No source table found"); 
 		}
-		return getSourceForm(user, table, docID, sourceFields);
+		return getAPForm(user, table, docID, sourceFields);
 	}
 	
 	/**
-	 * Call to get a specified form from the source table.
-	 * Use this definition if the source table and the list of fields are undefined in the properties file
+	 * Call to update a specified source form from the AP source table.
+	 * Use this definition if the source table is undefined in the properties file.
 	 * 
-	 * @param String user - eDOCSignature user.	
-	 * @param String table - Source table to search. 	    
-	 * @param String docID - Document to retrieve.
-	 * @param String[] fieldsList - List of fields to return.  
+	 * @param user - eDOC User - eDOCSignature user.	
+	 * @param table - Source table to search. 	    
+	 * @param docID - Document to retrieve. 
 	 * 
 	 */
-	public String getSourceForm(String user, String importTable, String docID, String[] fieldsList) throws Exception{
+	public String updateAPForm(String user, String docID, String[][] updateFields) throws Exception{	
+		String[][] updateFieldsImported;
+		int importedFound = -1;
+		for (int i = 0; i <updateFields.length; i++){
+			if(updateFields[i][0].equals("Imported")){
+				importedFound = i;
+			}
+		}
+		if(importedFound==-1){
+			updateFieldsImported = new String[updateFields.length+1][];
+			System.arraycopy(updateFields, 0, updateFieldsImported, 0, updateFields.length);
+			updateFieldsImported[updateFieldsImported.length-1] = new String[]{"Imported", getDateTime()};
+		}else{
+			updateFields[importedFound][1] = getDateTime(); 
+			updateFieldsImported = updateFields;
+		}		
+		return updateForm(user, sourceTable, docID, updateFieldsImported);
+	}	
+	
+	/**
+	 * Call to get a specified form from the AP source table.
+	 * Use this definition if the source table and the list of fields are undefined in the properties file
+	 * 
+	 * @param user - eDOC User 
+	 * @param table - Source table to search. 	    
+	 * @param docID - Document to retrieve.
+	 * @param fieldsList - List of fields to return.  
+	 * 
+	 */
+	public String getAPForm(String user, String importTable, String docID, String[] fieldsList) throws Exception{
 		String[] tableList = new String[]{importTable};
 		String[][] criteriaList = new String[1][];
 		criteriaList[0] = new String[]{"_Doc_ID",docID};
@@ -513,6 +600,15 @@ public class Poster {
         //String decrypted=TripleDESEncryptor.decrypt(encrypted);
 		return encrypted;
 	}
+
+	/*
+	 * Helper function to format the Date/Time for the "Impoerted" field in the eDOC System 
+	 */
+	private String getDateTime(){		
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss"); 
+		sdf.setTimeZone(TimeZone.getTimeZone("GMT"));  
+		return sdf.format(new Date());				
+	}
 	
 	/*
 	 * Helper function that loads settings from a properties file based on a Control ID
@@ -527,10 +623,10 @@ public class Poster {
 			// load a properties file
 			prop.load(input);
 
-			// get the property value and print it out
+			// get the property
 			isapiURL = prop.getProperty(cid+".isapiURL");
 			encryptionKey = TripleDES.decrypt(settingsKeyString, prop.getProperty(cid+".encryptionKey"));
-			eDOCSigURL = prop.getProperty(cid+".edocSignatureURL");
+			eDOCSigURL = prop.getProperty(cid+".edocSignatureURL").trim();
 			sourceTable = prop.getProperty(cid+".sourceTable");
 			String sourceFieldsStr = prop.getProperty(cid+".sourceFields");
 			sourceFields = sourceFieldsStr.split(",");
@@ -573,7 +669,7 @@ public class Poster {
 	/*
 	 * Helper function that builds a string out of a list of templates and the corresponding list of template data
 	 */	
-	public String buildTemplatesString(String[] templateList, String[][][] templateData) throws Exception {
+	private String buildTemplatesString(String[] templateList, String[][][] templateData) throws Exception {
 		String templateString = "{";		
 		if(templateList.length == templateData.length){			
 			int numTemplates = templateData.length;
@@ -649,7 +745,7 @@ public class Poster {
 	 * Can be updated with different URLs if the Amazon services goes offline or fails
 	 */	
 	private String getExternalIP() throws IOException{
-		URL whatismyip = new URL("http://checkip.amazonaws.com");
+		URL whatismyip = new URL(eDOCSigURL+"/common/fetchip.php");
 		BufferedReader in = new BufferedReader(new InputStreamReader(
 		                whatismyip.openStream()));
 
